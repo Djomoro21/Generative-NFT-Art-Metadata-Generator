@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFT Collection Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    h2 {
+      color: #333;
+      margin-bottom: 25px;
+      font-size: 22px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    
+    h3 {
+      color: #555;
+      margin: 25px 0 15px 0;
+      font-size: 18px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .step {
+      display: none;
+    }
+    
+    .step.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .form-group {
+      margin-bottom: 25px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+      font-family: inherit;
+    }
+    
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="password"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+    
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      left: -9999px;
+    }
+    
+    .file-input-label {
+      display: block;
+      padding: 12px 15px;
+      background: #f5f5f5;
+      border: 2px dashed #d0d0d0;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: #666;
+    }
+    
+    .file-input-label:hover {
+      background: #ebebeb;
+      border-color: #667eea;
+      color: #667eea;
+    }
+    
+    .file-input-label.has-files {
+      background: #e8f0fe;
+      border-color: #667eea;
+      color: #667eea;
+    }
+    
+    .layer {
+      border: 2px solid #e0e0e0;
+      padding: 15px;
+      margin: 10px 0;
+      background: #fafafa;
+      border-radius: 10px;
+      cursor: grab;
+      transition: all 0.3s;
+    }
+    
+    .layer:hover {
+      border-color: #667eea;
+      background: #f5f7ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    }
+    
+    .layer:active {
+      cursor: grabbing;
+    }
+    
+    .layer b {
+      color: #667eea;
+      font-size: 16px;
+      display: block;
+      margin-bottom: 10px;
+    }
+    
+    .layer input[type="number"] {
+      width: 60px;
+      padding: 4px 8px;
+      margin-left: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 13px;
+    }
+    
+    .trait-item {
+      padding: 5px 0;
+      color: #666;
+      font-size: 14px;
+    }
+    
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-right: 10px;
+    }
+    
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    button.secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+    
+    button.secondary:hover:not(:disabled) {
+      background: #f5f7ff;
+    }
+    
+    canvas {
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      margin-top: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 100px);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .grid canvas {
+      width: 100px;
+      height: 100px;
+    }
+    
+    #progressBar {
+      width: 100%;
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 10px;
+      margin-top: 15px;
+      overflow: hidden;
+      display: none;
+    }
+    
+    #progressFill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .api-config {
+      background: #f8f9fa;
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      margin-bottom: 25px;
+    }
+    
+    .api-config h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .api-config input {
+      margin-top: 5px;
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: #999;
+      margin-top: 5px;
+    }
+    
+    .ipfs-links {
+      background: #d4edda;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+      display: none;
+      border: 2px solid #c3e6cb;
+    }
+    
+    .ipfs-links h4 {
+      color: #155724;
+      margin: 0 0 15px 0;
+    }
+    
+    .ipfs-links p {
+      margin: 10px 0;
+      color: #155724;
+    }
+    
+    .ipfs-links b {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .ipfs-links code {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: block;
+      margin: 5px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #667eea;
+      word-break: break-all;
+    }
+    
+    #statusText {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      color: #0c5460;
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      display: none;
+    }
+    
+    #statusText.active {
+      display: block;
+    }
+    
+    .incompatible-section {
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid #ffc107;
+      margin: 20px 0;
+    }
+    
+    .incompatible-section h3 {
+      margin-top: 0;
+      color: #856404;
+    }
+    
+    .incompatible-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .incompatible-controls select {
+      flex: 1;
+      min-width: 150px;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    #incompatibleList {
+      list-style: none;
+      padding: 0;
+    }
+    
+    #incompatibleList li {
+      background: white;
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 6px;
+      color: #856404;
+      border-left: 3px solid #ffc107;
+    }
+    
+    .preview-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid #e0e0e0;
+      margin: 20px 0;
+      text-align: center;
+    }
+    
+    .preview-section h3 {
+      margin-top: 0;
+    }
+    
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 2px solid #f0f0f0;
+    }
+    
+    .layer-count {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      margin-left: 10px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🎨 NFT Collection Generator</h1>
+  <p class="subtitle" id="subtitleText">Create your generative NFT collection with IPFS storage</p>
+  
+  <h2 id="titleStep">Step 1: Collection Setup</h2>
+
+  <!-- STEP 1: Collection Setup -->
+  <div class="step active" id="step1">
+    <div class="form-group">
+      <label for="collectionName">Collection Name</label>
+      <input type="text" id="collectionName" placeholder="e.g., Cool Cats Collection">
+      <p class="help-text">This will be the name of your NFT collection</p>
+    </div>
+
+    <div class="form-group">
+      <label for="collectionDesc">Collection Description</label>
+      <textarea id="collectionDesc" placeholder="Describe your NFT collection..."></textarea>
+      <p class="help-text">A brief description of your collection</p>
+    </div>
+
+    <div class="form-group">
+      <label for="collectionSize">Collection Size</label>
+      <input type="number" id="collectionSize" value="10" min="1" max="10000">
+      <p class="help-text">How many NFTs do you want to generate?</p>
+    </div>
+
+    <div class="form-group">
+      <label>Upload Layers Folder</label>
+      <div class="file-input-wrapper">
+        <input type="file" id="folderInput" webkitdirectory multiple>
+        <label for="folderInput" class="file-input-label" id="fileLabel">
+          📁 Click to select layers folder
+        </label>
+      </div>
+      <p class="help-text" id="layerCountText" style="display: none;"></p>
+    </div>
+
+    <div class="form-group pre-reveal-section">
+      <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+        <input type="checkbox" id="usePreRevealCheckbox">
+        <span>Use pre-reveal (image or animation)</span>
+      </label>
+      <p class="help-text">Show a single image or animation for all tokens before reveal. Image + metadata (and optional animation) are uploaded to IPFS under one CID.</p>
+      <div id="preRevealOptions" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px; border: 2px solid #e0e0e0;">
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label for="preRevealImageInput">Pre-reveal image (required)</label>
+          <div class="file-input-wrapper">
+            <input type="file" id="preRevealImageInput" accept="image/*">
+            <label for="preRevealImageInput" class="file-input-label" id="preRevealImageLabel">
+              🖼️ Click to select image (fallback if animation doesn't load)
+            </label>
+          </div>
+          <p class="help-text">Required. Shown when animation is not used or fails to load.</p>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="preRevealAnimationInput">Pre-reveal animation (optional)</label>
+          <div class="file-input-wrapper">
+            <input type="file" id="preRevealAnimationInput" accept="video/*,image/gif">
+            <label for="preRevealAnimationInput" class="file-input-label" id="preRevealAnimationLabel">
+              🎬 Click to select animation (video or GIF)
+            </label>
+          </div>
+          <p class="help-text">Optional. If set, this plays as pre-reveal; image is used as fallback.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+        <input type="checkbox" id="soulboundCheckbox">
+        <span>Soulbound collection (non-transferable)</span>
+      </label>
+      <p class="help-text">If checked, metadata will mark tokens as soulbound. Use a contract that enforces non-transferability (e.g. ERC-5484 or custom).</p>
+    </div>
+
+    <div class="nav-buttons">
+      <div></div>
+      <button onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Configure Layers -->
+  <div class="step" id="step2">
+    <h3>Layer Order <span class="layer-count" id="layerCount">0 layers</span></h3>
+    <p class="help-text">Drag layers to reorder. Top layer renders on top.</p>
+    <div id="layersUI"></div>
+
+    <div class="incompatible-section">
+      <h3>⚠️ Incompatible Traits</h3>
+      <p class="help-text">Define traits that should never appear together</p>
+      <div class="incompatible-controls">
+        <select id="traitA"></select>
+        <select id="traitB"></select>
+        <button onclick="addIncompatible()">Add Rule</button>
+      </div>
+      <ul id="incompatibleList"></ul>
+    </div>
+
+    <div class="preview-section">
+      <h3>Live Preview</h3>
+      <button onclick="preview()">🎲 Generate Random Preview</button>
+      <canvas id="previewCanvas" width="300" height="300"></canvas>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="secondary" onclick="prevStep()">← Back</button>
+      <button onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Collection Preview -->
+  <div class="step" id="step3">
+    <h3>Collection Preview</h3>
+    <p class="help-text">Here's a preview of your generated collection</p>
+    <div class="grid" id="previewGrid"></div>
+
+    <div class="nav-buttons">
+      <button class="secondary" onclick="prevStep()">← Back</button>
+      <button onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Generate & Upload -->
+  <div class="step" id="step4">
+    <div class="api-config">
+      <h3>🔐 IPFS Configuration</h3>
+      <label for="pinataJwt">Pinata JWT Token</label>
+      <input type="password" id="pinataJwt" placeholder="Paste your Pinata JWT here">
+      <p class="help-text">Get your JWT from <a href="https://pinata.cloud" target="_blank" style="color: #667eea;">pinata.cloud</a> → API Keys</p>
+    </div>
+
+    <h3>Generate Your Collection</h3>
+    <div class="button-group">
+      <button onclick="generateAndDownload()" id="downloadBtn">📦 Generate & Download ZIP</button>
+      <button onclick="uploadToIPFS()" id="ipfsBtn">🚀 Generate & Upload to IPFS</button>
+    </div>
+    
+    <div id="progressBar">
+      <div id="progressFill"></div>
+    </div>
+    
+    <p id="statusText"></p>
+    
+    <div id="ipfsLinks" class="ipfs-links">
+      <h4>✅ Upload Complete! 🎉</h4>
+      <div id="nftLinks"></div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="secondary" onclick="prevStep()">← Back</button>
+      <div></div>
+    </div>
+  </div>
+
+  <canvas id="hiddenCanvas" width="300" height="300" style="display:none;"></canvas>
+</div>
+
+<script>
+let step = 1;
+let layers = [];
+let incompatible = [];
+let draggedIndex = null;
+let collection = [];
+let preRevealImage = null;   // File
+let preRevealAnimation = null; // File or null
+
+function showStep(n) {
+  document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
+  document.getElementById("step" + n).classList.add("active");
+  
+  const titles = [
+    "",
+    "Step 1: Collection Setup",
+    "Step 2: Configure Layers",
+    "Step 3: Preview Collection",
+    "Step 4: Generate & Upload"
+  ];
+  
+  document.getElementById("titleStep").innerText = titles[n];
+}
+
+function nextStep() {
+  if (step === 1) {
+    if (!validateStep1()) return;
+    loadLayers();
+  }
+  if (step === 2) buildCollectionPreview();
+  step++;
+  showStep(step);
+  window.scrollTo(0, 0);
+}
+
+function prevStep() {
+  step--;
+  showStep(step);
+  window.scrollTo(0, 0);
+}
+
+function validateStep1() {
+  if (!collectionName.value.trim()) {
+    alert("Please enter a collection name");
+    return false;
+  }
+  if (layers.length === 0) {
+    alert("Please upload a layers folder");
+    return false;
+  }
+  const usePreReveal = document.getElementById("usePreRevealCheckbox").checked;
+  if (usePreReveal && !preRevealImage) {
+    alert("Pre-reveal is enabled. Please upload the required pre-reveal image.");
+    return false;
+  }
+  return true;
+}
+
+document.getElementById("folderInput").addEventListener("change", e => {
+  const files = [...e.target.files];
+  const temp = {};
+  
+  files.forEach(file => {
+    const layer = file.webkitRelativePath.split("/")[1];
+    if (!temp[layer]) temp[layer] = [];
+    temp[layer].push({ file, weight: 1 });
+  });
+  
+  layers = Object.entries(temp).map(([name, traits]) => ({ name, traits }));
+  
+  const fileLabel = document.getElementById("fileLabel");
+  const layerCountText = document.getElementById("layerCountText");
+  
+  if (layers.length > 0) {
+    fileLabel.classList.add("has-files");
+    fileLabel.textContent = `✓ ${layers.length} layers loaded`;
+    layerCountText.style.display = "block";
+    layerCountText.textContent = `${layers.length} layers with ${files.length} total assets`;
+  }
+});
+
+document.getElementById("usePreRevealCheckbox").addEventListener("change", e => {
+  const opts = document.getElementById("preRevealOptions");
+  opts.style.display = e.target.checked ? "block" : "none";
+  if (!e.target.checked) {
+    preRevealImage = null;
+    preRevealAnimation = null;
+    document.getElementById("preRevealImageInput").value = "";
+    document.getElementById("preRevealAnimationInput").value = "";
+    document.getElementById("preRevealImageLabel").classList.remove("has-files");
+    document.getElementById("preRevealImageLabel").textContent = "🖼️ Click to select image (fallback if animation doesn't load)";
+    document.getElementById("preRevealAnimationLabel").classList.remove("has-files");
+    document.getElementById("preRevealAnimationLabel").textContent = "🎬 Click to select animation (video or GIF)";
+  }
+});
+
+document.getElementById("preRevealImageInput").addEventListener("change", e => {
+  const file = e.target.files && e.target.files[0];
+  preRevealImage = file || null;
+  const label = document.getElementById("preRevealImageLabel");
+  if (file) {
+    label.classList.add("has-files");
+    label.textContent = "✓ " + file.name;
+  } else {
+    label.classList.remove("has-files");
+    label.textContent = "🖼️ Click to select image (fallback if animation doesn't load)";
+  }
+});
+
+document.getElementById("preRevealAnimationInput").addEventListener("change", e => {
+  const file = e.target.files && e.target.files[0];
+  preRevealAnimation = file || null;
+  const label = document.getElementById("preRevealAnimationLabel");
+  if (file) {
+    label.classList.add("has-files");
+    label.textContent = "✓ " + file.name;
+  } else {
+    label.classList.remove("has-files");
+    label.textContent = "🎬 Click to select animation (video or GIF)";
+  }
+});
+
+function loadLayers() {
+  renderUI();
+  populateTraitSelectors();
+  preview();
+}
+
+function renderUI() {
+  const div = document.getElementById("layersUI");
+  const layerCountEl = document.getElementById("layerCount");
+  
+  layerCountEl.textContent = `${layers.length} layers`;
+  div.innerHTML = "";
+  
+  layers.forEach((layer, index) => {
+    const box = document.createElement("div");
+    box.className = "layer";
+    box.draggable = true;
+    
+    box.ondragstart = () => draggedIndex = index;
+    box.ondragover = e => e.preventDefault();
+    box.ondrop = () => {
+      const temp = layers[draggedIndex];
+      layers.splice(draggedIndex, 1);
+      layers.splice(index, 0, temp);
+      renderUI();
+      preview();
+    };
+    
+    box.innerHTML = `<b>${layer.name}</b>`;
+    
+    layer.traits.forEach((t, i) => {
+      const traitDiv = document.createElement("div");
+      traitDiv.className = "trait-item";
+      traitDiv.innerHTML = `
+        ${t.file.name}
+        <input type="number" value="${t.weight}" min="0" max="100" 
+          onchange="layers[${index}].traits[${i}].weight=this.value; preview();"
+          title="Weight (rarity)">
+      `;
+      box.appendChild(traitDiv);
+    });
+    
+    div.appendChild(box);
+  });
+}
+
+function populateTraitSelectors() {
+  let all = [];
+  layers.forEach(l => l.traits.forEach(t => all.push(t.file.name)));
+  
+  traitA.innerHTML = "";
+  traitB.innerHTML = "";
+  
+  all.forEach(t => {
+    traitA.innerHTML += `<option>${t}</option>`;
+    traitB.innerHTML += `<option>${t}</option>`;
+  });
+}
+
+function addIncompatible() {
+  const a = traitA.value;
+  const b = traitB.value;
+  
+  if (a === b) {
+    alert("Please select two different traits");
+    return;
+  }
+  
+  incompatible.push([a, b]);
+  incompatibleList.innerHTML += `<li>${a} ⚠️ ${b}</li>`;
+  preview();
+}
+
+function pickWeighted(traits) {
+  const total = traits.reduce((a, b) => a + Number(b.weight), 0);
+  let r = Math.random() * total;
+  
+  for (const t of traits) {
+    r -= t.weight;
+    if (r <= 0) return t;
+  }
+  
+  return traits[0];
+}
+
+function isValid(combo) {
+  return !incompatible.some(([a, b]) => combo.includes(a) && combo.includes(b));
+}
+
+async function randomCombo() {
+  let selected;
+  let attempts = 0;
+  const maxAttempts = 1000;
+  
+  while (attempts < maxAttempts) {
+    selected = [];
+    for (const layer of layers) {
+      selected.push(pickWeighted(layer.traits).file.name);
+    }
+    if (isValid(selected)) break;
+    attempts++;
+  }
+  
+  if (attempts === maxAttempts) {
+    console.warn("Could not generate valid combo, using last attempt");
+  }
+  
+  return selected;
+}
+
+async function drawCombo(combo, canvas) {
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  let index = combo.length - 1;
+  
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const layer = layers[i];
+    const trait = layer.traits.find(t => t.file.name === combo[index]);
+    
+    if (trait) {
+      const img = await createImageBitmap(trait.file);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+    
+    index--;
+  }
+}
+
+async function preview() {
+  if (!layers.length) return;
+  const combo = await randomCombo();
+  await drawCombo(combo, previewCanvas);
+}
+
+async function buildCollectionPreview() {
+  collection = [];
+  previewGrid.innerHTML = "";
+  
+  const size = Number(collectionSize.value);
+  
+  for (let i = 0; i < size; i++) {
+    const combo = await randomCombo();
+    collection.push(combo);
+    
+    const c = document.createElement("canvas");
+    c.width = 100;
+    c.height = 100;
+    await drawCombo(combo, c);
+    previewGrid.appendChild(c);
+  }
+}
+
+async function generateAndDownload() {
+  const canvas = hiddenCanvas;
+  const progressBar = document.getElementById("progressBar");
+  const progressFill = document.getElementById("progressFill");
+  const statusText = document.getElementById("statusText");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const ipfsBtn = document.getElementById("ipfsBtn");
+  
+  progressBar.style.display = "block";
+  downloadBtn.disabled = true;
+  ipfsBtn.disabled = true;
+  statusText.className = "active";
+  statusText.innerText = "Preparing files...";
+
+  try {
+    const zip = new JSZip();
+    const imagesFolder = zip.folder("images");
+    const metadataFolder = zip.folder("metadata");
+
+    if (preRevealImage) {
+      const preRevealFolder = zip.folder("pre-reveal");
+      const imageExt = preRevealImage.name.split('.').pop();
+      preRevealFolder.file(`image.${imageExt}`, preRevealImage);
+      if (preRevealAnimation) {
+        const animExt = preRevealAnimation.name.split('.').pop();
+        preRevealFolder.file(`animation.${animExt}`, preRevealAnimation);
+      }
+      const preRevealMeta = {
+        name: (collectionName.value || "NFT Collection") + " (Pre-Reveal)",
+        description: "This NFT has not been revealed yet. Stay tuned!",
+        image: `image.${imageExt}`
+      };
+      if (preRevealAnimation) preRevealMeta.animation_url = `animation.${preRevealAnimation.name.split('.').pop()}`;
+      preRevealFolder.file("metadata", JSON.stringify(preRevealMeta, null, 2));
+    }
+
+    // Generate images
+    for (let i = 0; i < collection.length; i++) {
+      progressFill.style.width = ((i + 1) / collection.length * 50) + "%";
+      statusText.innerText = `Rendering image ${i + 1}/${collection.length}`;
+
+      await drawCombo(collection[i], canvas);
+
+      const blob = await new Promise(res =>
+        canvas.toBlob(b => res(b), "image/png")
+      );
+
+      imagesFolder.file(`${i}.png`, blob);
+    }
+
+    // Generate metadata
+    for (let i = 0; i < collection.length; i++) {
+      progressFill.style.width = (50 + (i + 1) / collection.length * 50) + "%";
+      statusText.innerText = `Creating metadata ${i + 1}/${collection.length}`;
+
+      const attributes = collection[i].map((trait, idx) => ({
+        trait_type: layers[idx].name,
+        value: trait.replace(/\.[^/.]+$/, "")
+      }));
+      if (document.getElementById("soulboundCheckbox").checked) {
+        attributes.push({ trait_type: "Soulbound", value: "Yes" });
+      }
+
+      const meta = {
+        name: `${collectionName.value || "NFT"} #${i}`,
+        description: collectionDesc.value || "",
+        image: `${i}.png`,
+        attributes
+      };
+      if (document.getElementById("soulboundCheckbox").checked) {
+        meta.soulbound = true;
+      }
+
+      metadataFolder.file(`${i}`, JSON.stringify(meta, null, 2));
+    }
+
+    statusText.innerText = "Creating ZIP file...";
+    
+    // Generate ZIP
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    
+    // Download
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${collectionName.value || "nft-collection"}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    progressFill.style.width = "100%";
+    statusText.innerText = "Download complete! 🎉";
+    statusText.style.background = "#d4edda";
+    statusText.style.color = "#155724";
+    statusText.style.borderColor = "#c3e6cb";
+
+  } catch (err) {
+    console.error("Generation error:", err);
+    statusText.innerText = "Error: " + err.message;
+    statusText.style.background = "#f8d7da";
+    statusText.style.color = "#721c24";
+    statusText.style.borderColor = "#f5c6cb";
+    progressFill.style.width = "0%";
+  }
+
+  downloadBtn.disabled = false;
+  ipfsBtn.disabled = false;
+  
+  setTimeout(() => {
+    progressBar.style.display = "none";
+    progressFill.style.width = "0%";
+  }, 3000);
+}
+
+async function uploadToIPFS() {
+  const jwt = pinataJwt.value.trim();
+  
+  if (!jwt) {
+    alert("Please enter your Pinata JWT token");
+    return;
+  }
+
+  // Opening the HTML file directly (file://) causes origin "null" → CORS blocks fetch to Pinata.
+  if (window.location.protocol === "file:") {
+    const msg = "This page was opened from your computer (file://). Browsers block uploads to Pinata from that context (CORS).\n\nRun a local web server, then open the page from it:\n\n1. Open a terminal in the folder that contains this HTML file.\n2. Run: npx serve\n   (or: python -m http.server 8080)\n3. In your browser open: http://localhost:3000 (or http://localhost:8080)\n4. Use the upload button again.";
+    alert(msg);
+    return;
+  }
+
+  const canvas = hiddenCanvas;
+  const progressBar = document.getElementById("progressBar");
+  const progressFill = document.getElementById("progressFill");
+  const statusText = document.getElementById("statusText");
+  const ipfsBtn = document.getElementById("ipfsBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+  
+  progressBar.style.display = "block";
+  ipfsBtn.disabled = true;
+  downloadBtn.disabled = true;
+  statusText.className = "active";
+  statusText.innerText = "Preparing files...";
+
+  try {
+    let preRevealCID = null;
+    const hasPreReveal = preRevealImage != null;
+
+    // ================= PRE-REVEAL (image + optional animation + metadata under one CID) =================
+    // Pinata requires multiple files to be under ONE directory path (same prefix), else "More than one file and/or directory" error.
+    if (hasPreReveal) {
+      statusText.innerText = "Uploading pre-reveal to IPFS (image + metadata, one CID)...";
+      progressFill.style.width = "5%";
+
+      const dirName = "pre-reveal";
+      const imageExt = preRevealImage.name.split('.').pop();
+      const imageFilename = `image.${imageExt}`;
+      const preRevealForm = new FormData();
+      preRevealForm.append('file', preRevealImage, `${dirName}/${imageFilename}`);
+
+      if (preRevealAnimation) {
+        const animExt = preRevealAnimation.name.split('.').pop();
+        preRevealForm.append('file', preRevealAnimation, `${dirName}/animation.${animExt}`);
+      }
+
+      const preRevealMeta = {
+        name: (collectionName.value || "NFT Collection") + " (Pre-Reveal)",
+        description: "This NFT has not been revealed yet. Stay tuned!",
+        image: imageFilename
+      };
+      if (preRevealAnimation) {
+        preRevealMeta.animation_url = `animation.${preRevealAnimation.name.split('.').pop()}`;
+      }
+      const metadataBlob = new Blob([JSON.stringify(preRevealMeta, null, 2)], { type: 'application/json' });
+      preRevealForm.append('file', metadataBlob, `${dirName}/metadata`);
+
+      preRevealForm.append("pinataMetadata", JSON.stringify({ name: collectionName.value + " - Pre-Reveal" }));
+
+      const preRevealRes = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${jwt}` },
+        body: preRevealForm
+      });
+      if (!preRevealRes.ok) throw new Error(await preRevealRes.text());
+      const preRevealJson = await preRevealRes.json();
+      preRevealCID = preRevealJson.IpfsHash;
+      progressFill.style.width = "10%";
+    }
+
+    // ================= IMAGES =================
+    const imageFiles = [];
+    const startPct = hasPreReveal ? 10 : 0;
+    const imagePct = hasPreReveal ? 35 : 40;
+
+    for (let i = 0; i < collection.length; i++) {
+      progressFill.style.width = (startPct + (i + 1) / collection.length * imagePct) + "%";
+      statusText.innerText = `Rendering image ${i + 1}/${collection.length}`;
+
+      await drawCombo(collection[i], canvas);
+
+      const blob = await new Promise(res =>
+        canvas.toBlob(b => res(b), "image/png")
+      );
+
+      const file = new File([blob], `${i}.png`, { type: "image/png" });
+      imageFiles.push(file);
+    }
+
+    const imageForm = new FormData();
+    imageFiles.forEach((file, index) => {
+      imageForm.append('file', file, `images/${file.name}`);
+    });
+
+    imageForm.append("pinataMetadata", JSON.stringify({ name: collectionName.value + " - Images" }));
+
+    statusText.innerText = "Uploading images to IPFS...";
+
+    const imgRes = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${jwt}` },
+      body: imageForm
+    });
+
+    if (!imgRes.ok) throw new Error(await imgRes.text());
+    const imgJson = await imgRes.json();
+    const imagesCID = imgJson.IpfsHash;
+
+    // ================= METADATA =================
+    const metaFiles = [];
+    const metaStartPct = hasPreReveal ? 45 : 40;
+    const metaPct = hasPreReveal ? 35 : 40;
+
+    for (let i = 0; i < collection.length; i++) {
+      progressFill.style.width = (metaStartPct + (i + 1) / collection.length * metaPct) + "%";
+      statusText.innerText = `Creating metadata ${i + 1}/${collection.length}`;
+
+      const attributes = collection[i].map((trait, idx) => ({
+        trait_type: layers[idx].name,
+        value: trait.replace(/\.[^/.]+$/, "")
+      }));
+      if (document.getElementById("soulboundCheckbox").checked) {
+        attributes.push({ trait_type: "Soulbound", value: "Yes" });
+      }
+
+      const meta = {
+        name: `${collectionName.value || "NFT"} #${i}`,
+        description: collectionDesc.value || "",
+        image: `ipfs://${imagesCID}/${i}.png`,
+        attributes
+      };
+      if (document.getElementById("soulboundCheckbox").checked) {
+        meta.soulbound = true;
+      }
+
+      const file = new File(
+        [JSON.stringify(meta, null, 2)],
+        `${i}`,
+        { type: "application/json" }
+      );
+
+      metaFiles.push(file);
+    }
+
+    const metaForm = new FormData();
+    metaFiles.forEach(file => {
+      metaForm.append("file", file, `metadata/${file.name}`);
+    });
+
+    metaForm.append("pinataMetadata", JSON.stringify({ name: collectionName.value + " - Metadata" }));
+
+    statusText.innerText = "Uploading metadata to IPFS...";
+
+    const metaRes = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${jwt}` },
+      body: metaForm
+    });
+
+    if (!metaRes.ok) throw new Error(await metaRes.text());
+    const metaJson = await metaRes.json();
+    const metadataCID = metaJson.IpfsHash;
+
+    // ================= DONE =================
+    progressFill.style.width = "100%";
+    statusText.innerText = "Upload complete! 🎉";
+    statusText.style.background = "#d4edda";
+    statusText.style.color = "#155724";
+    statusText.style.borderColor = "#c3e6cb";
+    
+    ipfsLinks.style.display = "block";
+
+    let linksHTML = "";
+    if (preRevealCID) {
+      const imgExt = preRevealImage.name.split('.').pop();
+      linksHTML += `
+        <p>
+          <b>Pre-Reveal CID (image + metadata${preRevealAnimation ? " + animation" : ""}):</b><br>
+          <code>ipfs://${preRevealCID}</code>
+        </p>
+        <p>
+          <b>Pre-Reveal metadata URI (use for all tokens before reveal):</b><br>
+          <code>ipfs://${preRevealCID}/metadata</code>
+        </p>
+        <p>
+          <b>Pre-Reveal gateway URLs:</b><br>
+          <code>https://gateway.pinata.cloud/ipfs/${preRevealCID}/metadata</code>
+          <code>https://gateway.pinata.cloud/ipfs/${preRevealCID}/image.${imgExt}</code>
+          ${preRevealAnimation ? `<code>https://gateway.pinata.cloud/ipfs/${preRevealCID}/animation.${preRevealAnimation.name.split('.').pop()}</code>` : ""}
+        </p>
+        <p style="background:#fff3cd;padding:10px;border-radius:8px;margin-top:12px;">
+          <b>💡 Pre-reveal:</b> Point your contract’s tokenURI to <code>ipfs://${preRevealCID}/metadata</code> for all token IDs until reveal. Then switch to <code>ipfs://${metadataCID}/</code> + tokenId + ".json".
+        </p>
+      `;
+    }
+    linksHTML += `
+      <p>
+        <b>Images CID:</b><br>
+        <code>ipfs://${imagesCID}</code>
+      </p>
+      <p>
+        <b>Metadata CID (use after reveal):</b><br>
+        <code>ipfs://${metadataCID}</code>
+      </p>
+      <p>
+        <b>Token URI Examples:</b><br>
+        <code>ipfs://${metadataCID}/0</code>
+        <code>ipfs://${metadataCID}/1</code>
+        <code>ipfs://${metadataCID}/2</code>
+      </p>
+      <p>
+        <b>Gateway URLs:</b><br>
+        <code>https://gateway.pinata.cloud/ipfs/${imagesCID}/0.png</code>
+        <code>https://gateway.pinata.cloud/ipfs/${metadataCID}/0</code>
+      </p>
+    `;
+    nftLinks.innerHTML = linksHTML;
+
+  } catch (err) {
+    console.error("Upload error:", err);
+    let msg = err.message;
+    if (msg === "Failed to fetch" || (err.name && err.name.includes("TypeError"))) {
+      msg = "Network blocked (CORS). Open this page from a local server, not by double-clicking the file. In the folder with this HTML, run: npx serve — then open http://localhost:3000";
+    }
+    statusText.innerText = "Error: " + msg;
+    statusText.style.background = "#f8d7da";
+    statusText.style.color = "#721c24";
+    statusText.style.borderColor = "#f5c6cb";
+    progressFill.style.width = "0%";
+  }
+
+  ipfsBtn.disabled = false;
+  downloadBtn.disabled = false;
+  
+  setTimeout(() => {
+    if (statusText.innerText.includes("Error")) {
+      progressBar.style.display = "none";
+      progressFill.style.width = "0%";
+    }
+  }, 4000);
+}
+</script>
+
+</body>
+</html>
